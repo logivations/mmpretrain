@@ -19,7 +19,7 @@ default_hooks = dict(
     sampler_seed=dict(type='DistSamplerSeedHook'),
 
     # validation results visualization, set True to enable it.
-    visualization=dict(type='VisualizationHook', enable=False),
+    visualization=dict(type='VisualizationHook', enable=True),
 )
 
 # configure environment
@@ -35,7 +35,7 @@ env_cfg = dict(
 )
 
 # set visualizer
-vis_backends = [dict(type='LocalVisBackend')]
+vis_backends = [dict(type='TensorboardVisBackend')]
 visualizer = dict(type='UniversalVisualizer', vis_backends=vis_backends)
 
 # set log level
