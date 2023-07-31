@@ -9,6 +9,8 @@ from mmengine.config import Config, ConfigDict, DictAction
 from mmengine.evaluator import DumpResults
 from mmengine.runner import Runner
 
+import sys
+sys.path.insert(0, '/data/mmpretrain')
 
 def parse_args():
     parser = argparse.ArgumentParser(
