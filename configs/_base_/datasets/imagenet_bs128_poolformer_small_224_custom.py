@@ -106,4 +106,3 @@ test_evaluator = [
     dict(type='AveragePrecision', prefix='test'),
     dict(type='SingleLabelMetric', prefix='test'),
 ]
-
