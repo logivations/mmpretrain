@@ -9,7 +9,7 @@
 #######################################################################################################################
 #######################################################################################################################
 
-# This pipeline would be used after each merge request  to build mmsegmentaion latest docker images
+# This pipeline would be used after each merge request to build mmpretrain latest docker images
 kind: pipeline
 type: docker
 name: mmpretrain LS_mmpretrain_latest
