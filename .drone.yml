@@ -9,10 +9,10 @@
 #######################################################################################################################
 #######################################################################################################################
 
-# This pipeline would be used after each merge request to build mmpretrain latest docker images
+# This pipeline would be used after each merge request to build mmpret latest docker images
 kind: pipeline
 type: docker
-name: mmpretrain LS_mmpretrain_latest
+name: mmpret LS_mmpret_latest
 
 platform:
   arch: amd64
@@ -28,7 +28,7 @@ clone:
   depth: 1
 
 steps:
-  - name: Build latest LS_mmpretrain docker image
+  - name: Build latest LS_mmpret docker image
     image: plugins/docker:20.14
     environment:
       DOCKER_BUILDKIT: 1
@@ -40,10 +40,10 @@ steps:
       privileged: true
       build_args:
         - BUILDKIT_INLINE_CACHE=1
-      cache_from: quay.io/logivations/ml_all:LS_mmpretrain_latest
+      cache_from: quay.io/logivations/ml_all:LS_mmpret_latest
       tags:
-        - LS_mmpretrain_latest
-        - LS_mmpretrain_latest_${DRONE_COMMIT_SHA}
+        - LS_mmpret_latest
+        - LS_mmpret_latest_${DRONE_COMMIT_SHA}
       username:
         from_secret: DOCKER_QUAY_USERNAME
       password:
@@ -59,11 +59,11 @@ steps:
 #######################################################################################################################
 #######################################################################################################################
 
-# 2. Build docker image for mmpretrain
+# 2. Build docker image for mmpret
 ---
 kind: pipeline
 type: docker
-name: PR validation build mmpretrain images
+name: PR validation build mmpret images
 
 platform:
   arch: amd64
@@ -78,7 +78,7 @@ clone:
   depth: 50
 
 steps:
-  - name: Build LS_mmpretrain docker image for pull request
+  - name: Build LS_mmpret docker image for pull request
     image: plugins/docker:20.14
     environment:
       DOCKER_BUILDKIT: 1
@@ -91,11 +91,11 @@ steps:
       build_args:
         - BUILDKIT_INLINE_CACHE=1
       cache_from: 
-        - quay.io/logivations/ml_all:LS_mmpretrain_latest
-        - quay.io/logivations/ml_all:LS_mmpretrain_pr${DRONE_PULL_REQUEST}
+        - quay.io/logivations/ml_all:LS_mmpret_latest
+        - quay.io/logivations/ml_all:LS_mmpret_pr${DRONE_PULL_REQUEST}
       tags:
-        - LS_mmpretrain_pr${DRONE_PULL_REQUEST}
-        - LS_mmpretrain_pr${DRONE_PULL_REQUEST}_${DRONE_COMMIT_SHA}
+        - LS_mmpret_pr${DRONE_PULL_REQUEST}
+        - LS_mmpret_pr${DRONE_PULL_REQUEST}_${DRONE_COMMIT_SHA}
       username:
         from_secret: DOCKER_QUAY_USERNAME
       password:
