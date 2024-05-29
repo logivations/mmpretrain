@@ -24,7 +24,6 @@ infer-dims=3;128;128
 maintain-aspect-ratio=0
 model-color-format=0
 
-batch-size=8
 network-type=100 # >3 disables post-processing
 cluster-mode=4 # 1=DBSCAN 4=No Clustering
 process-mode=2 # 1=Primary, 2=Secondary
