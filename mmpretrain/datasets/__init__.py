@@ -14,6 +14,7 @@ from .places205 import Places205
 from .samplers import *  # noqa: F401,F403
 from .transforms import *  # noqa: F401,F403
 from .voc import VOC
+from .auto import AutoDataset
 
 __all__ = [
     'BaseDataset', 'ImageNet', 'CIFAR10', 'CIFAR100', 'MNIST', 'FashionMNIST',
