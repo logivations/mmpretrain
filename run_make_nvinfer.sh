@@ -3,7 +3,6 @@
 MODEL_DIR=$1
 MODEL_DIR=${MODEL_DIR%%/}
 shift
-current_date=$(date +"%d_%m_%Y")
 
 CLASSES=( "$@" )
 CLASSES=$(IFS=';' ; echo "${CLASSES[*]}")
@@ -17,8 +16,8 @@ offsets=123.675;116.128;103.53
 model-color-format=0
 scaling-filter=1 # 0=Nearest, 1=Bilinear
 
-onnx-file=classifier_$current_date.onnx
-model-engine-file=classifier_$current_date.onnx_b1_gpu0_fp16.engine
+onnx-file=state_classifier.onnx
+model-engine-file=state_classifier.onnx_b1_gpu0_fp16.engine
 
 # model config
 infer-dims=3;128;128
