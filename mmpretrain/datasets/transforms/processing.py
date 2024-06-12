@@ -314,6 +314,180 @@ class RandomResizedCrop(BaseTransform):
         repr_str += f', backend={self.backend})'
         return repr_str
 
+@TRANSFORMS.register_module()
+class FilledResize(BaseTransform):
+    """Resize images & bbox & mask.
+
+    This transform resizes the input image to some scale. Bboxes and masks are
+    then resized with the same scale factor. If the input dict contains the key
+    "scale", then the scale in the input dict is used, otherwise the specified
+    scale in the init method is used. If the input dict contains the key
+    "scale_factor" (if MultiScaleFlipAug does not give img_scale but
+    scale_factor), the actual scale will be computed by image shape and
+    scale_factor.
+
+    `img_scale` can either be a tuple (single-scale) or a list of tuple
+    (multi-scale). There are 3 multiscale modes:
+
+    - ``ratio_range is not None``: randomly sample a ratio from the ratio \
+      range and multiply it with the image scale.
+    - ``ratio_range is None`` and ``multiscale_mode == "range"``: randomly \
+      sample a scale from the multiscale range.
+    - ``ratio_range is None`` and ``multiscale_mode == "value"``: randomly \
+      sample a scale from multiple scales.
+
+    Args:
+        scale (tuple or list[tuple]): Images scales for resizing.
+        ratio_range (tuple[float]): (min_ratio, max_ratio)
+        keep_ratio (bool): Whether to keep the aspect ratio when resizing the
+            image.
+        backend (str): Image resize backend, choices are 'cv2' and 'pillow'.
+            These two backends generates slightly different results. Defaults
+            to 'cv2'.
+        interpolation (str): Interpolation method, accepted values are
+            "nearest", "bilinear", "bicubic", "area", "lanczos" for 'cv2'
+            backend, "nearest", "bilinear" for 'pillow' backend.
+    """
+
+    def __init__(self,
+                 scale: Union[Sequence, int],
+                 keep_ratio=True,
+                 backend='cv2',
+                 interpolation='bilinear',
+                 **kwargs):
+        if isinstance(scale, Sequence):
+            assert len(scale) == 2
+            assert scale[0] > 0 and scale[1] > 0
+            self.scale = scale
+        else:
+            assert scale > 0
+            self.scale = (scale, scale)
+        self.backend = backend
+        self.keep_ratio = keep_ratio
+        self.interpolation = interpolation
+        super().__init__(**kwargs)
+
+
+    def transform(self, results):
+        """Resize images with ``results['scale']``."""
+        for key in results.get('img_fields', ['img']):
+            if self.keep_ratio:
+                img, scale_factor = mmcv.imrescale(
+                    results[key],
+                    self.scale,
+                    return_scale=True,
+                    interpolation=self.interpolation,
+                    backend=self.backend)
+                # the w_scale and h_scale has minor difference
+                # a real fix should be done in the mmcv.imrescale in the future
+
+                # Create new black img
+                new_img = np.zeros((self.scale[1], self.scale[0], img.shape[2]), dtype=img.dtype)
+
+                new_h, new_w = img.shape[:2]
+
+                start_h = (self.scale[1] - new_h) // 2
+                start_w = (self.scale[0] - new_w) // 2
+
+                # Center image into black box
+                new_img[start_h:start_h+new_h, start_w:start_w+new_w, :] = img
+                img = new_img
+
+                h, w = results[key].shape[:2]
+                w_scale = new_w / w
+                h_scale = new_h / h
+            else:
+                img, w_scale, h_scale = mmcv.imresize(
+                    results[key],
+                    self.scale,
+                    return_scale=True,
+                    interpolation=self.interpolation,
+                    backend=self.backend)
+
+            results[key] = img
+
+            scale_factor = np.array([w_scale, h_scale, w_scale, h_scale],
+                                    dtype=np.float32)
+            results['img_shape'] = img.shape
+            # in case that there is no padding
+            results['pad_shape'] = img.shape
+            results['scale_factor'] = scale_factor
+            results['keep_ratio'] = self.keep_ratio
+
+            return results
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        repr_str += f'(scale={self.scale}, '
+        repr_str += f'keep_ratio={self.keep_ratio}, '
+        return repr_str
+
+
+@TRANSFORMS.register_module()
+class SaveExamples(BaseTransform):
+    """Crop the given image to random scale and aspect ratio.
+
+    A crop of random size (default: of 0.08 to 1.0) of the original size and a
+    random aspect ratio (default: of 3/4 to 4/3) of the original aspect ratio
+    is made. This crop is finally resized to given size.
+
+    **Required Keys:**
+
+    - img
+
+    **Modified Keys:**
+
+    - img
+    - img_shape
+
+    Args:
+        scale (sequence | int): Desired output scale of the crop. If size is an
+            int instead of sequence like (h, w), a square crop (size, size) is
+            made.
+        crop_ratio_range (tuple): Range of the random size of the cropped
+            image compared to the original image. Defaults to (0.08, 1.0).
+        aspect_ratio_range (tuple): Range of the random aspect ratio of the
+            cropped image compared to the original image.
+            Defaults to (3. / 4., 4. / 3.).
+        max_attempts (int): Maximum number of attempts before falling back to
+            Central Crop. Defaults to 10.
+        interpolation (str): Interpolation method, accepted values are
+            'nearest', 'bilinear', 'bicubic', 'area', 'lanczos'. Defaults to
+            'bilinear'.
+        backend (str): The image resize backend type, accepted values are
+            'cv2' and 'pillow'. Defaults to 'cv2'.
+    """
+
+    def __init__(self,
+                 base_path: str = "/data/saved_examples",
+                 prefix: str = "train_examples",
+                 **kwargs) -> None:
+        self.base_path = base_path
+        self.prefix = prefix
+        super().__init__(**kwargs)
+
+    def transform(self, results: dict) -> dict:
+        """Saves images after previous hook
+        """
+
+        import os
+        import uuid
+        from PIL import Image
+
+        img = results['img']
+        array = img.astype(np.uint8)
+        image = Image.fromarray(array)
+        file_name = str(uuid.uuid4()) + ".png"
+        file_path = os.path.join(self.base_path, self.prefix, file_name)
+        os.makedirs(os.path.join(self.base_path, self.prefix), exist_ok=True)
+        image.save(file_path)
+        print(f"Saved : {file_name}")
+
+        return results
+
+    def __repr__(self):
+        return "SaveExamples"
+
 
 @TRANSFORMS.register_module()
 class EfficientNetRandomCrop(RandomResizedCrop):
