@@ -13,7 +13,7 @@ from .formatting import (Collect, PackInputs, PackMultiTaskInputs, ToNumpy,
 from .processing import (Albumentations, BEiTMaskGenerator, ColorJitter,
                          EfficientNetCenterCrop, EfficientNetRandomCrop,
                          Lighting, RandomCrop, RandomErasing,
-                         RandomResizedCrop, ResizeEdge, SimMIMMaskGenerator)
+                         RandomResizedCrop, ResizeEdge, SimMIMMaskGenerator, SaveExamples, FilledResize)
 from .wrappers import MultiView
 
 for t in (CenterCrop, LoadImageFromFile, Normalize, RandomFlip,
