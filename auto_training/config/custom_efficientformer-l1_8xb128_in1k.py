@@ -1,29 +1,30 @@
+default_scope = 'mmpretrain'
+data_root = '/data/dataset/'
+dataset_type = 'AutoDataset'
+
 RES = 128
 auto_scale_lr = dict(base_batch_size=1024)
 bgr_mean = [
-    103.53,
-    116.28,
     123.675,
+    116.28,
+    103.53,
 ]
 bgr_std = [
-    57.375,
-    57.12,
     58.395,
+    57.12,
+    57.375,
 ]
+
+launcher = 'none'
+load_from = None
+log_level = 'INFO'
+
 data_preprocessor = dict(
-    mean=[
-        123.675,
-        116.28,
-        103.53,
-    ],
+    mean=bgr_mean,
     num_classes=3,
-    std=[
-        58.395,
-        57.12,
-        57.375,
-    ],
+    std=bgr_std,
     to_rgb=True)
-dataset_type = 'AutoDataset'
+
 default_hooks = dict(
     checkpoint=dict(interval=100, type='CheckpointHook'),
     logger=dict(interval=100, type='LoggerHook'),
@@ -31,14 +32,10 @@ default_hooks = dict(
     sampler_seed=dict(type='DistSamplerSeedHook'),
     timer=dict(type='IterTimerHook'),
     visualization=dict(enable=True, type='VisualizationHook'))
-default_scope = 'mmpretrain'
 env_cfg = dict(
     cudnn_benchmark=False,
     dist_cfg=dict(backend='nccl'),
     mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
-launcher = 'none'
-load_from = None
-log_level = 'INFO'
 model = dict(
     backbone=dict(
         arch='l1',
@@ -107,7 +104,18 @@ param_scheduler = [
 ]
 randomness = dict(deterministic=False, seed=None)
 resume = False
+
 test_cfg = dict()
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        backend='pillow',
+        interpolation='bicubic',
+        keep_ratio=False,
+        scale=128,
+        type='FilledResize'),
+    dict(type='PackInputs'),
+]
 test_dataloader = dict(
     batch_size=32,
     collate_fn=dict(type='default_collate'),
@@ -260,6 +268,7 @@ val_dataloader = dict(
     persistent_workers=True,
     pin_memory=True,
     sampler=dict(shuffle=False, type='DefaultSampler'))
+
 val_evaluator = [
     dict(prefix='val', topk=(1, ), type='Accuracy'),
     dict(prefix='val', type='AveragePrecision'),
