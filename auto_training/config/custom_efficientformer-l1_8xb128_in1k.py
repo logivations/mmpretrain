@@ -121,21 +121,9 @@ test_dataloader = dict(
     collate_fn=dict(type='default_collate'),
     dataset=dict(
         data_prefix='test',
-        data_root='/data/dataset/',
-        pipeline=[
-            dict(type='LoadImageFromFile'),
-            dict(
-                backend='pillow',
-                crop_ratio_range=(
-                    1,
-                    1,
-                ),
-                interpolation='bicubic',
-                scale=128,
-                type='RandomResizedCrop'),
-            dict(direction='horizontal', prob=0.5, type='RandomFlip'),
-            dict(type='PackInputs'),
-        ],
+        data_root=data_root,
+        pipeline=test_pipeline,
+        target_class_map=dict(),
         type=dataset_type),
     num_workers=5,
     persistent_workers=True,
@@ -146,78 +134,11 @@ test_evaluator = [
     dict(prefix='test', type='AveragePrecision'),
     dict(prefix='test', type='SingleLabelMetric'),
 ]
-test_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(
-        backend='pillow',
-        crop_ratio_range=(
-            1,
-            1,
-        ),
-        interpolation='bicubic',
-        scale=128,
-        type='RandomResizedCrop'),
-    dict(direction='horizontal', prob=0.5, type='RandomFlip'),
-    dict(type='PackInputs'),
-]
-train_cfg = dict(by_epoch=True, max_epochs=100, val_interval=10)
-train_dataloader = dict(
-    batch_size=32,
-    collate_fn=dict(type='default_collate'),
-    dataset=dict(
-        data_prefix='train',
-        data_root='/data/dataset/',
-        pipeline=[
-            dict(type='LoadImageFromFile'),
-            dict(
-                backend='pillow',
-                crop_ratio_range=(
-                    0.3,
-                    1,
-                ),
-                interpolation='bicubic',
-                scale=128,
-                type='RandomResizedCrop'),
-            dict(direction='horizontal', prob=0.5, type='RandomFlip'),
-            dict(magnitude_range=(
-                0,
-                0.3,
-            ), type='Shear'),
-            dict(angle=360, prob=0.8, type='Rotate'),
-            dict(
-                erase_prob=0.25,
-                fill_color=[
-                    103.53,
-                    116.28,
-                    123.675,
-                ],
-                fill_std=[
-                    57.375,
-                    57.12,
-                    58.395,
-                ],
-                max_area_ratio=0.3333333333333333,
-                min_area_ratio=0.02,
-                mode='rand',
-                type='RandomErasing'),
-            dict(type='PackInputs'),
-        ],
-        type=dataset_type),
-    num_workers=5,
-    persistent_workers=True,
-    pin_memory=True,
-    sampler=dict(shuffle=True, type='DefaultSampler'))
+
+train_cfg = dict(by_epoch=True, max_epochs=300, val_interval=10)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(
-        backend='pillow',
-        crop_ratio_range=(
-            0.3,
-            1,
-        ),
-        interpolation='bicubic',
-        scale=128,
-        type='RandomResizedCrop'),
+    dict(contrast=0.2, hue=0.1, saturation=0.2, type='ColorJitter'),
     dict(direction='horizontal', prob=0.5, type='RandomFlip'),
     dict(magnitude_range=(
         0,
@@ -225,44 +146,36 @@ train_pipeline = [
     ), type='Shear'),
     dict(angle=360, prob=0.8, type='Rotate'),
     dict(
-        erase_prob=0.25,
-        fill_color=[
-            103.53,
-            116.28,
-            123.675,
-        ],
-        fill_std=[
-            57.375,
-            57.12,
-            58.395,
-        ],
-        max_area_ratio=0.3333333333333333,
-        min_area_ratio=0.02,
-        mode='rand',
-        type='RandomErasing'),
+        backend='pillow',
+        interpolation='bicubic',
+        keep_ratio=False,
+        scale=128,
+        type='FilledResize'),
     dict(type='PackInputs'),
 ]
+train_dataloader = dict(
+    batch_size=32,
+    collate_fn=dict(type='default_collate'),
+    dataset=dict(
+        data_prefix='train',
+        data_root=data_root,
+        pipeline=train_pipeline,
+        target_class_map=dict(),
+        type=dataset_type),
+    num_workers=5,
+    persistent_workers=True,
+    pin_memory=True,
+    sampler=dict(shuffle=True, type='DefaultSampler'))
+
 val_cfg = dict()
 val_dataloader = dict(
     batch_size=32,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
         data_prefix='val',
-        data_root='/data/dataset/',
-        pipeline=[
-            dict(type='LoadImageFromFile'),
-            dict(
-                backend='pillow',
-                crop_ratio_range=(
-                    1,
-                    1,
-                ),
-                interpolation='bicubic',
-                scale=128,
-                type='RandomResizedCrop'),
-            dict(direction='horizontal', prob=0.5, type='RandomFlip'),
-            dict(type='PackInputs'),
-        ],
+        data_root=data_root,
+        pipeline=test_pipeline,
+        target_class_map=dict(),
         type=dataset_type),
     num_workers=5,
     persistent_workers=True,
