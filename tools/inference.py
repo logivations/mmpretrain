@@ -33,7 +33,9 @@ def main(args):
     inference = ImageClassificationInferencer(
         model=args.config,
         pretrained=args.checkpoint,
+        classes=args.classes
     )
+    print(f"Inference classes: {args.classes}")
     if args.silent:
         inference.show_progress = False
 
@@ -80,5 +82,11 @@ if __name__ == "__main__":
         "--silent",
         action="store_true",
         help="suppress progress bars and verbose output")
+    parser.add_argument(
+        '--classes',
+        nargs='+',
+        required=True,
+        help='list of classes for the training'
+    )
     config = parser.parse_args()
     main(config)
