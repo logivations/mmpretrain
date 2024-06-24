@@ -35,7 +35,7 @@ class AutoDataset(CustomDataset):
         print(f"Classes for training: {CLASSES}")
         print(f"Target_class_map: {target_class_map}")
 
-        super().__init__(classes=CLASSES, **kwargs)
+        super().__init__(classes=sorted(CLASSES), **kwargs)
 
     def _find_samples(self):
         """find samples from ``data_prefix``."""
