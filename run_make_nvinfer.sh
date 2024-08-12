@@ -29,7 +29,7 @@ gie-unique-id=3
 process-mode=2 # 1=Primary, 2=Secondary
 output-tensor-meta=1
 maintain-aspect-ratio=0
-tensor-meta-pool-size=100
+tensor-meta-pool-size=200
 
 operate-on-class-ids=0;
 
