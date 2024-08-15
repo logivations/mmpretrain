@@ -85,7 +85,7 @@ steps:
       DOCKER_BUILDKIT: 1
     settings:
       dockerfile: deploy.Dockerfile
-      context: https://github.com/logivations/mmdeploy.git#mmdepl_RTDT-1920-Update-and-fix-label-studio-test-server:docker/
+      context: https://github.com/logivations/mmdeploy.git#mmdepl_RTDT-1920-Update-and-fix-label-studio-test-server
       registry: quay.io
       repo: quay.io/logivations/ml_all
       privileged: true
