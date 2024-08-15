@@ -109,15 +109,12 @@ steps:
       DOCKER_BUILDKIT: 1
     settings:
       dockerfile: docker/deploy/Dockerfile
-      context: https://github.com/logivations/mmdeploy.git
+      context: https://github.com/logivations/mmdeploy.git#main:docker/deploy/
       registry: quay.io
       repo: quay.io/logivations/ml_all
       privileged: true
       build_args: 
         - BUILDKIT_INLINE_CACHE=1
-      cache_from:
-        - quay.io/logivations/ml_all:LS_mmdeploy_pr${DRONE_PULL_REQUEST}
-        - quay.io/logivations/ml_all:LS_mmdeploy_latest
       tags:
         - LS_mmdeploy_pr${DRONE_PULL_REQUEST}
         - LS_mmdeploy_pr${DRONE_PULL_REQUEST}_${DRONE_COMMIT_SHA}
@@ -125,3 +122,6 @@ steps:
         from_secret: DOCKER_QUAY_USERNAME
       password:
         from_secret: DOCKER_QUAY_PASSWORD
+      # cache_from:
+      #   - quay.io/logivations/ml_all:LS_mmdeploy_pr${DRONE_PULL_REQUEST}
+      #   - quay.io/logivations/ml_all:LS_mmdeploy_latest
