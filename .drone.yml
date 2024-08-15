@@ -85,7 +85,7 @@ steps:
       DOCKER_BUILDKIT: 1
     settings:
       dockerfile: https://github.com/logivations/mmdeploy.git#main:docker/deploy/
-      context: https://github.com/logivations/mmdeploy.git#main
+      context: https://github.com/logivations/mmdeploy.git#main:docker/deploy/
       registry: quay.io
       repo: quay.io/logivations/ml_all
       privileged: true
