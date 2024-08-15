@@ -79,29 +79,6 @@ clone:
   depth: 50
 
 steps:
-  - name: Build LS_mmdeploy docker image for pull request
-    image: plugins/docker:20.14
-    environment:
-      DOCKER_BUILDKIT: 1
-    settings:
-      dockerfile: https://github.com/logivations/mmdeploy.git#main:docker/deploy/
-      context: https://github.com/logivations/mmdeploy.git#main:docker/deploy/
-      registry: quay.io
-      repo: quay.io/logivations/ml_all
-      privileged: true
-      build_args: 
-        - BUILDKIT_INLINE_CACHE=1
-      tags:
-        - LS_mmdeploy_pr${DRONE_PULL_REQUEST}
-        - LS_mmdeploy_pr${DRONE_PULL_REQUEST}_${DRONE_COMMIT_SHA}
-      username:
-        from_secret: DOCKER_QUAY_USERNAME
-      password:
-        from_secret: DOCKER_QUAY_PASSWORD
-      # cache_from:
-      #   - quay.io/logivations/ml_all:LS_mmdeploy_pr${DRONE_PULL_REQUEST}
-      #   - quay.io/logivations/ml_all:LS_mmdeploy_latest
-
   - name: Build LS_mmpret docker image for pull request
     image: plugins/docker:20.14
     environment:
@@ -125,3 +102,32 @@ steps:
         from_secret: DOCKER_QUAY_USERNAME
       password:
         from_secret: DOCKER_QUAY_PASSWORD
+  
+  - name: clone mmdeploy repo 
+    image: alpine/git
+    commands:
+      - git clone --depth=1 https://github.com/logivations/mmdeploy.git
+      - cd mmdeploy
+
+  - name: Build LS_mmdeploy docker image for pull request
+    image: plugins/docker:20.14
+    environment:
+      DOCKER_BUILDKIT: 1
+    settings:
+      dockerfile: docker/deploy/Dockerfile
+      context: docker/deploy
+      registry: quay.io
+      repo: quay.io/logivations/ml_all
+      privileged: true
+      build_args: 
+        - BUILDKIT_INLINE_CACHE=1
+      tags:
+        - LS_mmdeploy_pr${DRONE_PULL_REQUEST}
+        - LS_mmdeploy_pr${DRONE_PULL_REQUEST}_${DRONE_COMMIT_SHA}
+      username:
+        from_secret: DOCKER_QUAY_USERNAME
+      password:
+        from_secret: DOCKER_QUAY_PASSWORD
+      # cache_from:
+      #   - quay.io/logivations/ml_all:LS_mmdeploy_pr${DRONE_PULL_REQUEST}
+      #   - quay.io/logivations/ml_all:LS_mmdeploy_latest
