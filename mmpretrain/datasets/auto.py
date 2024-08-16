@@ -1,3 +1,6 @@
+import json
+import os
+
 from mmpretrain.datasets.custom import CustomDataset, get_samples
 from mmpretrain.registry import DATASETS
 
@@ -118,3 +121,49 @@ def find_folders(
                 folder_to_idx[folder] = folder_to_idx[target_class_map[folder]]
     return folders, folder_to_idx
 
+@DATASETS.register_module()
+class ConfidenceDataset(CustomDataset):
+    """
+        A extended CustomDataset from mmpretrain.datasets.custom.py
+    """
+
+    def __init__(
+        self,
+        ann_file: str = "/data/dataset/annotations.json",
+        **kwargs,
+    ):
+        CLASSES = ["loaded", "confidence"]
+        self.ann_file = ann_file
+        if not self.ann_file:
+            self.ann_file = "/data/dataset/annotations.json",
+        print(f"Classes for training: {CLASSES}")
+
+        super().__init__(ann_file=ann_file, classes=sorted(CLASSES), **kwargs)
+
+    def _find_samples(self):
+        """find samples from ``data_prefix``."""
+        samples = []
+
+        with open(self.ann_file, "r") as f:
+            data = json.load(f)
+        for path, ann in data.items():
+            full_path = os.path.join(self.data_prefix['img_path'], path)
+            if os.path.exists(full_path):
+                samples.append((path, ann['loaded'], ann['confidence']))
+
+        print(f"samples: {samples}")
+        return samples
+
+    def load_data_list(self):
+        """Load image paths and gt_labels."""
+        samples = self._find_samples()
+
+        # Pre-build file backend to prevent verbose file backend inference.
+        backend = get_file_backend(self.img_prefix, enable_singleton=True)
+        data_list = []
+        for sample in samples:
+            filename, state, confidence = sample
+            img_path = backend.join_path(self.img_prefix, filename)
+            info = {'img_path': img_path, 'gt_score': [state, confidence]}
+            data_list.append(info)
+        return data_list
