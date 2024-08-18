@@ -164,6 +164,6 @@ class ConfidenceDataset(CustomDataset):
         for sample in samples:
             filename, state, confidence = sample
             img_path = backend.join_path(self.img_prefix, filename)
-            info = {'img_path': img_path, 'gt_score': [state, confidence]}
+            info = {'img_path': img_path, 'gt_score': {"loaded": [state, confidence], "confidence": [confidence]}}
             data_list.append(info)
         return data_list

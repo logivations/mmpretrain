@@ -212,6 +212,10 @@ class MultiLabelMetric(BaseMetric):
         target = torch.stack([res['gt_score'] for res in results])
         pred = torch.stack([res['pred_score'] for res in results])
 
+
+        if self.prefix == "loaded":
+            target = target[:, :1]
+
         metric_res = self.calculate(
             pred,
             target,

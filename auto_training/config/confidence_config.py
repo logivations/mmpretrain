@@ -59,11 +59,21 @@ model = dict(
         resolution=4,
         type='EfficientFormer'),
     head=dict(
-        distillation=False,
-        in_channels=448,
-        num_classes=2,
-        loss=dict(type='ConfidenceLoss'),
-        type='EfficientFormerClsHead'),
+        task_heads=dict(
+            loaded=dict(
+                distillation=False,
+                in_channels=448,
+                num_classes=1,
+                loss=dict(type='ConfidenceLoss', mode="loaded"),
+                type='EfficientFormerClsHead'),
+            confidence=dict(
+                distillation=False,
+                in_channels=448,
+                num_classes=1,
+                loss=dict(type='ConfidenceLoss', mode="confidence"),
+                type='EfficientFormerClsHead'),
+        ),
+        type='MultiTaskHead'),
     init_cfg=dict(
         checkpoint=
         'https://download.openmmlab.com/mmclassification/v0/efficientformer/efficientformer-l1_3rdparty_in1k_20220803-d66e61df.pth',
@@ -115,7 +125,7 @@ test_pipeline = [
         keep_ratio=False,
         scale=128,
         type='FilledResize'),
-    dict(type='PackInputs'),
+    dict(type='PackMultiTaskInputs', multi_task_fields=['gt_score']),
 ]
 test_dataloader = dict(
     batch_size=4,
@@ -129,9 +139,13 @@ test_dataloader = dict(
     persistent_workers=True,
     pin_memory=True,
     sampler=dict(shuffle=False, type='DefaultSampler'))
-test_evaluator = [
-    dict(prefix='test', type='AveragePrecision'),
-]
+test_evaluator = dict(
+    type='MultiTasksMetric',
+    task_metrics=dict(
+        loaded=[dict(type='MultiLabelMetric', prefix="loaded")],
+        confidence=[dict(type='MultiLabelMetric', prefix="conf")],
+    ),
+)
 
 train_cfg = dict(by_epoch=True, max_epochs=300, val_interval=10)
 train_pipeline = [
@@ -149,10 +163,10 @@ train_pipeline = [
         keep_ratio=False,
         scale=128,
         type='FilledResize'),
-    dict(type='PackInputs'),
+    dict(type='PackMultiTaskInputs', multi_task_fields=['gt_score']),
 ]
 train_dataloader = dict(
-    batch_size=8,
+    batch_size=2,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
         data_prefix='train',
@@ -178,9 +192,15 @@ val_dataloader = dict(
     pin_memory=True,
     sampler=dict(shuffle=False, type='DefaultSampler'))
 
-val_evaluator = [
-    dict(prefix='val', type='AveragePrecision'),
-]
+
+val_evaluator = dict(
+    type='MultiTasksMetric',
+    task_metrics=dict(
+        loaded=[dict(type='MultiLabelMetric', prefix="loaded")],
+        confidence=[dict(type='MultiLabelMetric', prefix="conf")],
+    ),
+)
+
 vis_backends = [
     dict(type='LocalVisBackend'),
     dict(type='TensorboardVisBackend'),
