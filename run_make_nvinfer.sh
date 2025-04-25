@@ -39,10 +39,9 @@ echo "[property]
 onnx-file=end2end.onnx
 
 # model config
-infer-dims=3;128;128
+infer-dims=3;$RES
 
 [custom]
-res=$RES
 operate-on-class-names=forklift
 labels=$CLASSES
 " > "$MODEL_DIR/classifier-config.txt"
