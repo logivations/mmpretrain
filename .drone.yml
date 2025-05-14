@@ -41,7 +41,6 @@ steps:
       build_args:
         - BUILDKIT_INLINE_CACHE=1
         - GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN}
-      cache_from: quay.io/logivations/ml_all:LS_mmpret_latest
       tags:
         - LS_mmpret_latest
         - LS_mmpret_latest_${DRONE_COMMIT_SHA}
