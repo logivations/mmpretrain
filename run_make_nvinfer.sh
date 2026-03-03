@@ -2,6 +2,7 @@
 
 NVINFER_FILE=""
 ONNX_FILENAME=""
+USE_CASE="vest"
 CLASSES=()
 RES=()
 
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
                 shift
             done
             ;;
+        --use-case)
+            USE_CASE="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown parameter: $1"
             exit 1
@@ -47,5 +52,7 @@ infer-dims=3;$RES
 
 [custom]
 operate-on-class-names=forklift
+model-type=softmax-classifier
+use-case=$USE_CASE
 labels=$CLASSES
 " > "$NVINFER_FILE"
