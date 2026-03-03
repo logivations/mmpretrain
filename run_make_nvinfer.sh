@@ -29,6 +29,13 @@ while [[ $# -gt 0 ]]; do
                 shift
             done
             ;;
+        --use-case)
+            shift
+            while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-- ]]; do
+                USE_CASE+=("$1")
+                shift
+            done
+            ;;
         *)
             echo "Unknown parameter: $1"
             exit 1
@@ -47,5 +54,7 @@ infer-dims=3;$RES
 
 [custom]
 operate-on-class-names=forklift
+model-type=softmax-classifier
+use-case=$USE_CASE
 labels=$CLASSES
 " > "$NVINFER_FILE"
