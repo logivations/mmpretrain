@@ -2,6 +2,7 @@
 
 NVINFER_FILE=""
 ONNX_FILENAME=""
+USE_CASE="vest"
 CLASSES=()
 RES=()
 
@@ -30,11 +31,8 @@ while [[ $# -gt 0 ]]; do
             done
             ;;
         --use-case)
-            shift
-            while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-- ]]; do
-                USE_CASE+=("$1")
-                shift
-            done
+            USE_CASE="$2"
+            shift 2
             ;;
         *)
             echo "Unknown parameter: $1"
