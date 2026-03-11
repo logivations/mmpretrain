@@ -18,6 +18,9 @@ platform:
   arch: amd64
   os: linux
 
+node:
+  docker: build_only
+
 trigger:
   branch:
     - main
@@ -69,6 +72,9 @@ name: PR validation build mmpret images
 platform:
   arch: amd64
   os: linux
+
+node:
+  docker: build_only
 
 trigger:
   event:
