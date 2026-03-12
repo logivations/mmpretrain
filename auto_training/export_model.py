@@ -2,6 +2,7 @@ import argparse
 import os
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 from mmengine.config import Config
 from mmengine.runner import load_checkpoint
@@ -119,9 +120,9 @@ def export_model(config_path, checkpoint_path, output_dir=None,
     model = build_classifier(cfg.model)
     load_checkpoint(model, checkpoint_path, map_location='cpu')
 
-    # Bind mode='tensor' so torch.onnx.export receives plain tensor in/out
+    # Bind mode='tensor' + softmax to match mmdeploy export behaviour
     _fwd = model.forward
-    model.forward = lambda x: _fwd(x, mode='tensor')
+    model.forward = lambda x: F.softmax(_fwd(x, mode='tensor'), dim=1)
 
     if output_dir is None:
         output_dir = cfg.work_dir
@@ -148,7 +149,7 @@ if __name__ == '__main__':
     model = build_classifier(cfg.model)
     load_checkpoint(model, args.checkpoint, map_location='cpu')
     _fwd = model.forward
-    model.forward = lambda x: _fwd(x, mode='tensor')
+    model.forward = lambda x: F.softmax(_fwd(x, mode='tensor'), dim=1)
 
     output_dir = os.path.dirname(os.path.abspath(args.output_file))
     os.makedirs(output_dir, exist_ok=True)
