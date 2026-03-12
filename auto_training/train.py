@@ -1,10 +1,12 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import argparse
+import glob
 import os
 import os.path as osp
 from copy import deepcopy
 import mmengine
 from auto_training.config.config_factory import make_mmpret_config
+from auto_training.export_model import export_model
 from mmengine.config import Config, ConfigDict, DictAction
 from mmengine.runner import Runner
 from mmengine.utils import digit_version
@@ -169,7 +171,19 @@ def main():
     # start training
     runner.train()
     metrics = runner.test()
-    mmengine.dump(metrics, os.path.join(args.work_dir, "metrics.json"))
+    mmengine.dump(metrics, os.path.join(cfg.work_dir, "metrics.json"))
+
+    # export best checkpoint to ONNX after training
+    best_ckpts = glob.glob(os.path.join(cfg.work_dir, 'epoch_*.pth'))
+    checkpoint_path = (
+        max(best_ckpts, key=os.path.getmtime)
+        if best_ckpts
+        else os.path.join(cfg.work_dir, 'last_checkpoint'))
+    
+    print(f"Export checkpoint: {checkpoint_path}")
+    
+    export_model(cfg, checkpoint_path, output_dir=cfg.work_dir,
+                 output_name='classifier.onnx')
 
 
 if __name__ == '__main__':
