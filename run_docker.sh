@@ -4,5 +4,6 @@ docker run \
     --rm \
     -it \
     -v /data:/data \
-    -w /data/mmpretrain \
-    mmpretrain
+    -v /data/mmpretrain:/mmpretrain \
+    -w /mmpretrain \
+    quay.io/logivations/ml_all:LS_mmpret_latest
