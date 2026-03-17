@@ -1091,7 +1091,14 @@ class ColorJitter(BaseTransform):
                 img = mmcv.adjust_color(
                     img, alpha=saturation, backend=self.backend)
             elif index == 3 and hue is not None:
-                img = mmcv.adjust_hue(img, hue, backend=self.backend)
+                # mmcv.adjust_hue uses np.uint8(hue_factor * 255) which raises
+                # OverflowError for negative values in numpy>=1.24. Apply fix inline.
+                import cv2
+                img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV_FULL)
+                img_hsv[..., 0] = np.uint8(
+                    (img_hsv[..., 0].astype(np.int16)
+                     + int(round(hue * 255))) % 256)
+                img = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR_FULL)
 
         results['img'] = img
         return results
