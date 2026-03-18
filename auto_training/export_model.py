@@ -7,6 +7,7 @@ import numpy as np
 from mmengine.config import Config
 from mmengine.runner import load_checkpoint
 from mmpretrain.models import build_classifier
+from mmpretrain.models.necks import GlobalAveragePooling
 
 # Patch torch.load for PyTorch 2.6+ (weights_only=True breaks numpy in checkpoints)
 _original_torch_load = torch.load
@@ -47,6 +48,19 @@ def parse_args():
     return parser.parse_args()
 
 
+def _gap_forward_flatten(self, inputs):
+    """GAP forward using flatten(1) instead of view — matches mmdeploy rewriter.
+
+    Avoids Shape→Gather→Unsqueeze→Concat→Reshape subgraph in ONNX which can
+    cause incorrect results in TensorRT with dynamic batch size.
+    """
+    if isinstance(inputs, tuple):
+        outs = tuple([self.gap(x) for x in inputs])
+        return tuple([out.flatten(1) for out in outs])
+    outs = self.gap(inputs)
+    return outs.flatten(1)
+
+
 def pytorch2onnx(model, input_shape, opset_version, output_file, verify,
                  show, dynamic_batch):
     """Export PyTorch model to ONNX format."""
@@ -57,6 +71,13 @@ def pytorch2onnx(model, input_shape, opset_version, output_file, verify,
     dynamic_axes = None
     if dynamic_batch:
         dynamic_axes = {'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+
+    # Patch GAP neck: replace view() with flatten(1) to produce a simple
+    # Flatten node in ONNX instead of Shape→Gather→Unsqueeze→Concat→Reshape.
+    # This matches mmdeploy's gap__forward rewriter and avoids TensorRT issues
+    # with dynamic batch reshape.
+    _orig_gap_fwd = GlobalAveragePooling.forward
+    GlobalAveragePooling.forward = _gap_forward_flatten
 
     print(f'Exporting model to ONNX with input shape: {input_shape}, '
           f'dynamic_batch={dynamic_batch}')
@@ -70,6 +91,8 @@ def pytorch2onnx(model, input_shape, opset_version, output_file, verify,
         dynamic_axes=dynamic_axes,
         do_constant_folding=True,
         keep_initializers_as_inputs=False)
+
+    GlobalAveragePooling.forward = _orig_gap_fwd
 
     print(f'Successfully exported ONNX model: {output_file}')
 
