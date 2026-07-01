@@ -1,6 +1,6 @@
 default_scope = 'mmpretrain'
-data_root = '/data/dataset/'
-dataset_type = 'AutoDataset'
+data_root = '/dataset/'
+dataset_type = 'JsonDataset'
 
 RES = 128
 auto_scale_lr = dict(base_batch_size=1024)
@@ -120,7 +120,8 @@ test_dataloader = dict(
     batch_size=32,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
-        data_prefix='test',
+        ann_file='annotations/test.json',
+        data_prefix='images',
         data_root=data_root,
         pipeline=test_pipeline,
         target_class_map=dict(),
@@ -157,7 +158,8 @@ train_dataloader = dict(
     batch_size=32,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
-        data_prefix='train',
+        ann_file='annotations/train.json',
+        data_prefix='images',
         data_root=data_root,
         pipeline=train_pipeline,
         target_class_map=dict(),
@@ -172,7 +174,8 @@ val_dataloader = dict(
     batch_size=32,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
-        data_prefix='val',
+        ann_file='annotations/val.json',
+        data_prefix='images',
         data_root=data_root,
         pipeline=test_pipeline,
         target_class_map=dict(),

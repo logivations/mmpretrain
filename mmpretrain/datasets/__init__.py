@@ -15,10 +15,11 @@ from .samplers import *  # noqa: F401,F403
 from .transforms import *  # noqa: F401,F403
 from .voc import VOC
 from .auto import AutoDataset
+from .json_dataset import JsonDataset
 
 __all__ = [
     'BaseDataset', 'ImageNet', 'CIFAR10', 'CIFAR100', 'MNIST', 'FashionMNIST',
     'VOC', 'build_dataset', 'ImageNet21k', 'KFoldDataset', 'CUB',
     'CustomDataset', 'MultiLabelDataset', 'MultiTaskDataset', 'InShop',
-    'Places205'
+    'Places205', 'AutoDataset', 'JsonDataset'
 ]
