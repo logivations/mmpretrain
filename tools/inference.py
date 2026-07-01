@@ -3,6 +3,9 @@ from argparse import ArgumentParser
 import os
 import json
 import time
+
+import cv2
+import numpy as np
 import torch
 from mmpretrain import ImageClassificationInferencer
 from sklearn.metrics import classification_report
@@ -15,63 +18,70 @@ def _torch_load_weights_only_false(f, *args, **kwargs):
     return _original_torch_load(f, *args, **kwargs)
 torch.load = _torch_load_weights_only_false
 
-class FPSLogger:
-    def __init__(self, num_of_images):
-        self.tottime = 0.0
-        self.count = 0
-        self.last_record = 0.0
-        self.last_print = time.time()
-        self.interval = 3
-        self.num_of_images = num_of_images
 
-    def start_record(self):
-        self.last_record = time.time()
+def _draw_prediction(img_path, pred_class, score, out_path):
+    """Draw the predicted class onto the image and save it (single-image predict)."""
+    img = cv2.imread(img_path)
+    if img is None:
+        return
+    bar_h = max(30, img.shape[0] // 20)
+    bar = np.zeros((bar_h, img.shape[1], 3), dtype=np.uint8)
+    out_img = np.vstack((bar, img))
+    cv2.putText(
+        out_img,
+        f"{pred_class} ({score:.2f})",
+        (5, int(bar_h * 0.7)),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        bar_h / 45,
+        (255, 255, 255),
+        2,
+        cv2.LINE_AA,
+    )
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    cv2.imwrite(out_path, out_img)
 
-    def end_record(self):
-        self.tottime += time.time() - self.last_record
-        self.count += 1
-        self.print_fps()
-
-    def print_fps(self):
-        if time.time() - self.last_print > self.interval:
-            print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - mmpret - INFO - Predict({self.count}/{self.num_of_images}) "
-                  f"- Inference running at {self.count / self.tottime:.3f} FPS")
-            self.last_print = time.time()
 
 def main(args):
-    fps_logger = FPSLogger(len(os.listdir(args.images_dir)))
     inference = ImageClassificationInferencer(
         model=args.config,
         pretrained=args.checkpoint,
-        classes=args.classes
+        classes=args.classes,
     )
     print(f"Inference classes: {args.classes}")
     if args.silent:
         inference.show_progress = False
 
     images: Path = args.images_dir
-    output_dir: Path = args.output_dir
-    output_dir.mkdir(parents=True, exist_ok=True) 
 
-    y_true, y_pred = ([], []) if args.ann_dir else (None, None)
+    # The annotation file is keyed by image name; its keys decide WHICH images to
+    # process (value is the GT class, or None when the task has no annotation).
+    # Fall back to globbing the folder when no annotation file is provided.
+    labels = {}
+    if args.ann_file and os.path.exists(args.ann_file):
+        with open(args.ann_file) as f:
+            labels = json.load(f)
+    image_names = list(labels.keys()) if labels else [p.name for p in images.glob("**/*.jpg")]
 
+    predictions = {}
+    y_true, y_pred = [], []
     start_time = time.time()
-    image_paths = list(images.glob("**/*.jpg"))
-    for i, p in enumerate(image_paths, 1):
+
+    for image_name in image_names:
+        img_path = os.path.join(images, image_name)
+        if not os.path.exists(img_path):
+            print(f"Image listed in annotations is missing, skipping: {img_path}")
+            continue
         try:
-            fps_logger.start_record()
-            result = inference(str(p))
-            fps_logger.end_record()
+            result = inference(img_path)[0]
+            pred_class = result["pred_class"]
+            score = float(result.get("pred_score", 1.0))
 
-            pred_class = result[0]['pred_class']
-
-            file_name = p.stem + ".json"
-            pred_path = os.path.join(output_dir, file_name)
-            prediction = {
+            predictions[image_name] = {
                 "result": [
                     {
                         "type": "choices",
                         "value": {"choices": [pred_class]},
+                        "score": score,
                         "origin": "manual",
                         "to_name": "image",
                         "from_name": "choice",
@@ -79,28 +89,33 @@ def main(args):
                 ],
             }
 
-            with open(pred_path, "w") as f:
-                json.dump(prediction, f)
+            if args.vis_dir:
+                _draw_prediction(
+                    img_path, pred_class, score, os.path.join(args.vis_dir, image_name)
+                )
 
-            if args.ann_dir is not None:
-                ann_path = args.ann_dir / file_name
-                try:
-                    with open(ann_path) as f:
-                        ann = json.load(f)
-                    gt_class = ann["result"][0]["value"]["choices"][0]
-                    y_true.append(gt_class)
-                    y_pred.append(pred_class)
-                except Exception as e:
-                    print(f"Warning: could not load GT for {p.name}: {e}")
+            gt_class = labels.get(image_name)
+            if gt_class is not None:
+                y_true.append(gt_class)
+                y_pred.append(pred_class)
 
         except Exception as e:
-            print(f"Failed with {p}. {e}")
+            print(f"Failed with {img_path}. {e}")
 
     print(f"Inference time: {round(time.time() - start_time, 2)} s.")
 
-    if args.ann_dir is not None and y_true:
-        print("\nClassification report:")
-        print(classification_report(y_true, y_pred, labels=args.classes))
+    with open(args.out_file, "w") as f:
+        json.dump(predictions, f)
+
+    # Metrics only over annotated images (entries whose value was not None).
+    if args.metrics_file and y_true:
+        report = classification_report(
+            y_true, y_pred, labels=args.classes, output_dict=True, zero_division=0
+        )
+        os.makedirs(os.path.dirname(args.metrics_file), exist_ok=True)
+        with open(args.metrics_file, "w") as f:
+            json.dump(report, f, indent=2)
+        print("Classification metrics saved.")
 
 
 if __name__ == "__main__":
@@ -108,20 +123,25 @@ if __name__ == "__main__":
     parser.add_argument("checkpoint")
     parser.add_argument("config")
     parser.add_argument("images_dir", type=Path)
-    parser.add_argument("output_dir", type=Path)
     parser.add_argument(
-        "--ann-dir", type=Path, default=None,
-        help="Directory with ground truth annotation JSONs (same filename as images). "
-             "When provided, precision/recall/F1-score are printed after inference.")
+        "--out-file", type=str, required=True,
+        help="Single JSON file with predictions, keyed by image name.")
     parser.add_argument(
-        "--silent",
-        action="store_true",
+        "--ann-file", type=str, default=None,
+        help="JSON keyed by image name -> GT class (or null). Its keys select "
+             "which images to process; non-null values are used for metrics.")
+    parser.add_argument(
+        "--metrics-file", type=str, default=None,
+        help="Path to write the classification report (JSON).")
+    parser.add_argument(
+        "--vis-dir", type=str, default=None,
+        help="If set, draw each prediction onto the image and save it here "
+             "(used for single-image predict to show the result in Label Studio).")
+    parser.add_argument(
+        "--silent", action="store_true",
         help="suppress progress bars and verbose output")
     parser.add_argument(
-        '--classes',
-        nargs='+',
-        required=True,
-        help='list of classes for the training'
-    )
+        "--classes", nargs="+", required=True,
+        help="list of classes for inference")
     config = parser.parse_args()
     main(config)
