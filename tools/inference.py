@@ -7,6 +7,7 @@ import time
 import cv2
 import numpy as np
 import torch
+from mmengine.config import Config
 from mmpretrain import ImageClassificationInferencer
 from sklearn.metrics import classification_report
 
@@ -42,8 +43,12 @@ def _draw_prediction(img_path, pred_class, score, out_path):
 
 
 def main(args):
+    cfg = Config.fromfile(args.config)
+    cfg.model.head.num_classes = len(args.classes)
+    cfg.data_preprocessor.num_classes = len(args.classes)
+
     inference = ImageClassificationInferencer(
-        model=args.config,
+        model=cfg,
         pretrained=args.checkpoint,
         classes=args.classes,
     )
